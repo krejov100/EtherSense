@@ -9,7 +9,7 @@ import struct
 
 print('Number of arguments:', len(sys.argv), 'arguments.')
 print('Argument List:', str(sys.argv))
-mc_ip_address = '224.0.0.1'
+mc_ip_address = '224.3.29.71'
 port = 10000
 
 
@@ -37,6 +37,7 @@ def main(argv):
         run_client()
 
 def run_server():
+    # wait for a ping request
     wait_for_multi_cast(mc_ip_address, port);
 
 def run_client():
@@ -56,7 +57,7 @@ def wait_for_multi_cast(ip_address, port):
     group = socket.inet_aton(ip_address)
     mreq = struct.pack('4sL', group, socket.INADDR_ANY)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     # Create the socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -66,7 +67,7 @@ def wait_for_multi_cast(ip_address, port):
     # Receive/respond loop
     while True:
         print('\nwaiting to receive message')
-        data, address = sock.recvfrom(1024)
+        data, address = sock.recvfrom(42)
 
         print('received %s bytes from %s' % (len(data), address))
         print(sys.stderr, data)
@@ -92,7 +93,7 @@ def multi_cast_message(ip_address, port, message):
         while True:
             print('waiting to receive')
             try:
-                data, server = sock.recvfrom(16)
+                data, server = sock.recvfrom(42)
             except socket.timeout:
                 print('timed out, no more responses')
                 break
