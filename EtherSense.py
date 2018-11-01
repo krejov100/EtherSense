@@ -9,8 +9,8 @@ import struct
 
 print('Number of arguments:', len(sys.argv), 'arguments.')
 print('Argument List:', str(sys.argv))
-mc_ip_address = '224.3.29.71'
-port = 10000
+mc_ip_address = '224.0.0.1'
+port = 1024
 
 
 def main(argv):
@@ -41,6 +41,7 @@ def run_server():
     wait_for_multi_cast(mc_ip_address, port);
 
 def run_client():
+   
     multi_cast_message(mc_ip_address, port, 'EtherSensePing')
 
 def init_ip_address():
@@ -86,7 +87,7 @@ def multi_cast_message(ip_address, port, message):
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
     try:
         # Send data to the multicast group
-        print('sending "%s"' % message)
+        print('sending "%s"' % message + str(multicast_group))
         sent = sock.sendto(message.encode(), multicast_group)
 
         # Look for responses from all recipients
