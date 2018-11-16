@@ -5,6 +5,7 @@ import sys, getopt
 #import open3d
 import socket
 import struct
+import asyncore
 
 
 print('Number of arguments:', len(sys.argv), 'arguments.')
@@ -12,6 +13,22 @@ print('Argument List:', str(sys.argv))
 mc_ip_address = '224.0.0.1'
 port = 1024
 
+class AsyncoreSocketUDP(asyncore.dispatcher):
+    def __init__(self,host, port=1024):
+        asyncore.dispatcher.__init__(self)
+	self.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
+	self.bind((host, port))
+ 	#self.listen(5)
+    def handle_read(self):
+	print("drfsfd")
+        data, addr = self.recv(1)
+	print(data)
+    def writable(self): 
+        return False # don't want write notifies
+
+
+AsyncoreSocketUDP('', 1024)
+asyncore.loop()
 
 def main(argv):
     try:
@@ -53,7 +70,7 @@ def wait_for_multi_cast(ip_address, port):
     # Create the socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # Bind to the server address
-    #?sock.bind(server_address)?
+    sock.bind(server_address)
 
     group = socket.inet_aton(ip_address)
     mreq = struct.pack('4sL', group, socket.INADDR_ANY)
