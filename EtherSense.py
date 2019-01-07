@@ -32,26 +32,66 @@ def openBagPipeline(filename):
     pipeline.start(cfg)
     return pipeline
 
+class DevNullHandler(asyncore.dispatcher_with_send):
+
+    def handle_read(self):
+        print(self.recv(1024))
+
+    def handle_close(self):
+        self.close()
+
+class RealSenseSignalingServer(asyncore.dispatcher):
+    def __init__(self):
+        asyncore.dispatcher.__init__(self)
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.set_reuse_addr()
+        self.bind(('0.0.0.0', 9006))
+        print(self.socket.getsockname()[1])
+        self.listen(10)
+    
+    def handle_connect(self):
+        print('connection')
+
+    def handle_close(self):
+        self.close()
+
+    def handle_accept(self):
+        pair = self.accept()
+        if pair is not None:
+            sock, addr = pair
+            #print "Incoming connection from %s" % repr(addr)
+            self.handler = DevNullHandler(sock)
+
+        #pair = self.accept()
+        #if pair is not None:
+        #    sock, addr = pair
+        #    print('Incoming Signaling from %s' % repr(addr))
+    
+    def handle_close(self):
+        self.close()
+
+    
+    def handle_read(self):
+        print("handle_read")    
+        print(self.recv(8192))
+
 
 class RealSenseUDPserver(asyncore.dispatcher):
-
     def __init__(self, address):
         asyncore.dispatcher.__init__(self)
         print("Launching Realsense Camera Server")
         self.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
         print('sending acknowledgement to', address)
         self.connect(address)
-        #self.socket.send('ack'.encode())
         self.pipeline = openBagPipeline("/home/node1/Desktop/20181119_131946.bag")
         self.ready = True
 
+
     def writable(self):
         return hasattr(self,'pipeline')
-    
 
     def handle_write(self):
         depth, timestamp = getDepthAndTimestamp(self.pipeline)
-
         if depth is not None:
             smallDepth = cv2.resize(depth, (0,0), fx=0.15, fy=0.15, interpolation=cv2.INTER_NEAREST) 
             ts = struct.pack('d', timestamp)
@@ -59,7 +99,7 @@ class RealSenseUDPserver(asyncore.dispatcher):
             self.socket.sendall(ts + data)
             
 
-class AsyncoreMulticastServer(asyncore.dispatcher):
+class MulticastServer(asyncore.dispatcher):
     def __init__(self, host = mc_ip_address, port=1024):
         asyncore.dispatcher.__init__(self)
         server_address = ('', port)
@@ -68,8 +108,8 @@ class AsyncoreMulticastServer(asyncore.dispatcher):
         mreq = struct.pack('4sL', group, socket.INADDR_ANY)
         self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.bind(server_address)
- 	
+        self.bind(server_address) 	
+
     def handle_read(self):
         data, addr = self.socket.recvfrom(42)
         print('received %s bytes from %s' % (data, addr))
@@ -103,7 +143,8 @@ def main(argv):
             is_server = arg
     print('is running as server -', is_server)
     if is_server:
-        server = AsyncoreMulticastServer()
+        se = RealSenseSignalingServer()
+        server = MulticastServer()
         asyncore.loop()
     else:
         run_client()
@@ -145,7 +186,7 @@ def wait_for_multi_cast(ip_address, port):
         print(sys.stderr, data)
 
         print('sending acknowledgement to', address)
-        sock.sendto('ack', address)
+        sock.sendto('RSack', address)
 
 def multi_cast_message(ip_address, port, message):
     multicast_group = (ip_address, port)
@@ -156,7 +197,6 @@ def multi_cast_message(ip_address, port, message):
     # local network segment.
     ttl = struct.pack('b', 1)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-
     try:
         # Send data to the multicast group
         print('sending "%s"' % message + str(multicast_group))
