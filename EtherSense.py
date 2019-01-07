@@ -34,7 +34,6 @@ def openBagPipeline(filename):
 
 
 class RealSenseUDPserver(asyncore.dispatcher):
-
     def __init__(self, address):
         asyncore.dispatcher.__init__(self)
         print("Launching Realsense Camera Server")
@@ -48,7 +47,6 @@ class RealSenseUDPserver(asyncore.dispatcher):
     def writable(self):
         return hasattr(self,'pipeline')
     
-
     def handle_write(self):
         depth, timestamp = getDepthAndTimestamp(self.pipeline)
 
@@ -215,23 +213,20 @@ def wait_for_multi_cast(ip_address, port):
         print('sending acknowledgement to', address)
         sock.sendto('ack', address)
 
-class RealSenseUDPclient(asyncore.dispatcher):
 
-    def __init__(self, address):
+#UDP client for each camera server 
+class RealSenseUDPclient(asyncore.dispatcher):
+    def __init__(self, port):
         asyncore.dispatcher.__init__(self)
+        print('recived acknowledgement from', port)
         print("Launching Realsense Camera Client")
         self.create_socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.sock.settimeout(0.5)
-        print('sending acknowledgement to', address)
-        self.connect(address)
-        #self.socket.send('ack'.encode())
-        self.pipeline = openBagPipeline("/home/node1/Desktop/20181119_131946.bag")
-        self.ready = True
-
-    def readable(self):
-        return True
+        self.socket.settimeout(0.5)
+        self.bind(('',port))
+        self.socket.sendall("test")
+    def writable(self): 
+        return False
     
-
     def handle_read(self):
         data, server = sock.recvfrom(65507)
         ts, imdata = data[:struct.calcsize('d')], data[struct.calcsize('d'):]
@@ -242,21 +237,55 @@ class RealSenseUDPclient(asyncore.dispatcher):
         cv2.imshow(str(server[1]), bigDepth)
         cv2.waitKey(1)
 
+class RealSenseSignalingClient(asyncore.dispatcher):
+    def __init__(self,address):
+        asyncore.dispatcher.__init__(self)
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connect(('10.0.2.4',9006))
+        print('connected')
+        self.laserOn = True
+        self.signalUpdate = False
+
+    def toggle_laser(self):
+        print('Toggling Laser')
+        self.laserOn = not self.laserOn    
+        self.signalUpdate = True
+
+    def handle_connect(self):
+        pass
+    
+    def handle_close(self):
+        self.close()
+
+    def writable(self):
+        print('test')
+        if not self.connected:
+            return True
+        print("writable"+ self.signalUpdate)
+        return self.signalUpdate
+
+    def handle_write(self):
+        print('Sending Toggle')
+        self.send(self.signalUpdate)
+        self.signalUpdate = False
+
+       
+def lasercallback(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONUP:
+        print('click')
+        param.toggle_laser()
+        
+
 def multi_cast_message(ip_address, port, message):
     multicast_group = (ip_address, port)
-    #send out regular request for servers on network
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(0.5)
-    # Set the time-to-live for messages to 1 so they do not go past the
-    # local network segment.
-    ttl = struct.pack('b', 1)
-    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl)
-
+    connections = {}
     try:
         # Send data to the multicast group
         print('sending "%s"' % message + str(multicast_group))
         sent = sock.sendto(message.encode(), multicast_group)
-        
+
         # Look for responses from all recipients
         while True:
             try:
@@ -266,7 +295,13 @@ def multi_cast_message(ip_address, port, message):
                 imdata = pickle.loads(imdata)
                 bigDepth = cv2.resize(imdata, (0,0), fx=2, fy=2, interpolation=cv2.INTER_NEAREST) 
                 cv2.putText(bigDepth, str(timestamp), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (65536), 2, cv2.LINE_AA)
-                cv2.imshow(str(server[1]), bigDepth)
+                windowName = str(server[1])
+                cv2.namedWindow(windowName)
+                if windowName not in connections:
+                    print('adding signelingClient')
+                    connections[windowName] = RealSenseSignalingClient(server[0])
+                cv2.setMouseCallback(windowName, lasercallback, param=connections[windowName])
+                cv2.imshow(windowName, bigDepth)
                 cv2.waitKey(1)
             except socket.timeout:
                 print('timed out, no more responses')
