@@ -27,7 +27,7 @@ def getDepthAndTimestamp(pipeline):
         return None, None
 def openBagPipeline(filename):
     cfg = rs.config()
-    cfg.enable_device_from_file(filename)
+    #cfg.enable_device_from_file(filename)
     pipeline = rs.pipeline()
     pipeline.start(cfg)
     return pipeline
@@ -80,10 +80,12 @@ class EtherSenseServer(asyncore.dispatcher):
         print("Launching Realsense Camera Server")
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         print('sending acknowledgement to', address)
-        self.connect((address[0], 1024))
         self.pipeline = openBagPipeline("/home/node1/Desktop/20181119_131946.bag")
         self.ready = True
         self.frameID = 0
+        self.frame_data = ''
+        self.connect((address[0], 1024))
+        self.packet_id = 0        
 
     def handle_connect(self):
         print("connection recvied")
@@ -91,16 +93,25 @@ class EtherSenseServer(asyncore.dispatcher):
     def writable(self):
         return True
 
-    def handle_write(self):
+    def update_frame(self):
         depth, timestamp = getDepthAndTimestamp(self.pipeline)
         if depth is not None:
-            if self.frameID % 1== 0:
-                smallDepth = cv2.resize(depth, (0,0), fx=0.15, fy=0.15, interpolation=cv2.INTER_NEAREST) 
-                ts = struct.pack('d', timestamp)
-                data = pickle.dumps(smallDepth)
-                length = struct.pack('I', len(data))
-                self.socket.send(ts+length+data)
-        self.frameID += 1
+            #smallDepth = cv2.resize(depth, (0,0), fx=0.25, fy=0.25, interpolation=cv2.INTER_NEAREST)
+            data = pickle.dumps(depth)
+            length = struct.pack('<I', len(data))
+            ts = struct.pack('<d', timestamp)
+            self.frame_data = ''.join([length, ts, data])
+
+    def handle_write(self):
+        if not hasattr(self, 'frame_data'):
+            self.update_frame()
+        if len(self.frame_data) == 0:
+            self.update_frame()
+        else:
+            remaining_size = self.send(self.frame_data)
+            self.frame_data = self.frame_data[remaining_size:]
+            self.frameID += 1
+
 
     def handle_close(self):
         self.close()
