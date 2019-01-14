@@ -12,6 +12,7 @@ import cv2
 print('Number of arguments:', len(sys.argv), 'arguments.')
 print('Argument List:', str(sys.argv))
 mc_ip_address = '224.0.0.1'
+local_ip_address = '192.168.0.1'
 port = 1024
 chunk_size = 4096
 
@@ -28,19 +29,21 @@ class ImageClient(asyncore.dispatcher):
         self.buffer = bytearray()
         self.windowName = self.port
         cv2.namedWindow("window"+str(self.windowName))
+        self.remainingBytes = 0
+        self.frame_id = 0
         #print('adding signelingClient')
         #signalServer = RealSenseSignalingClient(self.address)
         #cv2.setMouseCallback(self.windowName, lasercallback, param=signalServer)
 
     def handle_read(self):
-        self.buffer
-        if len(self.buffer) == 0:
-            self.timestamp = struct.unpack('d', self.recv(8))
-            self.frame_length = struct.unpack('I', self.recv(4))[0]
-
-      
-        data = self.recv(int(self.frame_length))#
+        if self.remainingBytes == 0:
+            self.frame_length = struct.unpack('<I', self.recv(4))[0]
+            self.timestamp = struct.unpack('<d', self.recv(8))
+            self.remainingBytes = self.frame_length
+        
+        data = self.recv(self.remainingBytes)
         self.buffer += data
+        self.remainingBytes -= len(data)
         if len(self.buffer) == self.frame_length:
             self.handle_frame()
 
@@ -51,6 +54,7 @@ class ImageClient(asyncore.dispatcher):
         cv2.imshow("window"+str(self.windowName), bigDepth)
         cv2.waitKey(1)
         self.buffer = bytearray()
+        self.frame_id += 1
     def readable(self):
         return True
 
@@ -102,6 +106,8 @@ class EtherSenseClient(asyncore.dispatcher):
         asyncore.dispatcher.__init__(self)
         self.server_address = ('', 1024)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(5)
+        
         self.bind(self.server_address) 	
         self.listen(5)
 
