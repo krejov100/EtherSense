@@ -96,8 +96,8 @@ class EtherSenseServer(asyncore.dispatcher):
     def update_frame(self):
         depth, timestamp = getDepthAndTimestamp(self.pipeline)
         if depth is not None:
-            #smallDepth = cv2.resize(depth, (0,0), fx=0.25, fy=0.25, interpolation=cv2.INTER_NEAREST)
-            data = pickle.dumps(depth)
+            smallDepth = cv2.resize(depth, (0,0), fx=0.25, fy=0.25, interpolation=cv2.INTER_NEAREST)
+            data = pickle.dumps(smallDepth)
             length = struct.pack('<I', len(data))
             ts = struct.pack('<d', timestamp)
             self.frame_data = ''.join([length, ts, data])
