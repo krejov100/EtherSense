@@ -7,6 +7,7 @@ pipmain(['install', 'numpy'])
 pipmain(['install', 'python-crontab'])
 pipmain(['install', 'opencv-python'])
 pipmain(['install', 'pyrealsense2'])
+pipmain(['install', 'cron_descriptor'])
 
 # using python-crontab, setup a job that is ran on the minute to check if the server is running. 
 # https://pypi.org/project/python-crontab/
