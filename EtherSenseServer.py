@@ -78,9 +78,14 @@ class EtherSenseServer(asyncore.dispatcher):
     def __init__(self, address):
         asyncore.dispatcher.__init__(self)
         print("Launching Realsense Camera Server")
+        try:
+            self.pipeline = openBagPipeline("/home/node1/Desktop/20181119_131946.bag")
+        except:
+            print("Unexpected error: ", sys.exc_info()[2])
+            sys.exit(1)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         print('sending acknowledgement to', address)
-        self.pipeline = openBagPipeline("/home/node1/Desktop/20181119_131946.bag")
+        
         self.ready = True
         self.frameID = 0
         self.frame_data = ''
