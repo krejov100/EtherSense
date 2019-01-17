@@ -81,7 +81,7 @@ class EtherSenseServer(asyncore.dispatcher):
         try:
             self.pipeline = openBagPipeline("/home/node1/Desktop/20181119_131946.bag")
         except:
-            print("Unexpected error: ", sys.exc_info()[2])
+            print("Unexpected error: ", sys.exc_info()[1])
             sys.exit(1)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         print('sending acknowledgement to', address)
