@@ -29,7 +29,9 @@ def openBagPipeline(filename):
     cfg = rs.config()
     #cfg.enable_device_from_file(filename)
     pipeline = rs.pipeline()
-    pipeline.start(cfg)
+    pipeline_profile = pipeline.start(cfg)
+    sensor = pipeline_profile.get_device().first_depth_sensor()
+    sensor.set_option(rs.option.emitter_enabled, 0)
     return pipeline
 
 class DevNullHandler(asyncore.dispatcher_with_send):
