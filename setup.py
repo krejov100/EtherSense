@@ -16,6 +16,8 @@ from crontab import CronTab
 system_cron = CronTab(tabfile='/etc/crontab', user=False)
 #requires the shell enviroment as ./AlwaysRunningServer.bash 
 system_cron.env['SHELL'] = '/bin/bash'
+job = system_cron.new(command="cd /home/$(ls /home/)/EtherSense; ./AlwaysRunningServer.bash >> /tmp/error.log 2>&1", user='root')
+job.every_reboot()
 i = 0
 #this while loop means that the are entrys in the cron file for each 5 sec interval
 while i < 60:
