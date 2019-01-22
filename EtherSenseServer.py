@@ -27,6 +27,7 @@ def getDepthAndTimestamp(pipeline):
         return None, None
 def openBagPipeline(filename):
     cfg = rs.config()
+    cfg.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     #cfg.enable_device_from_file(filename)
     pipeline = rs.pipeline()
     pipeline_profile = pipeline.start(cfg)
