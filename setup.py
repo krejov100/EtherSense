@@ -21,7 +21,7 @@ i = 0
 while i < 60:
     #the cron job is cd to the EtherSense dir then run AlwaysRunningServer.bash, logging to /temp/error.log
     #have to use this $(ls /home/) to find home dir, assuming no other user spaces.
-    job = system_cron.new(command="sleep %i; cd /home/$(ls /home/)/EtherSense; ./AlwaysRunningServer.bash > /tmp/error.log 2>&1"%i, user='root')
+    job = system_cron.new(command="sleep %i; cd /home/$(ls /home/)/EtherSense; ./AlwaysRunningServer.bash >> /tmp/error.log 2>&1"%i, user='root')
 
     # this line sets the frequance of server checking, stars for all time slices means every minute
     job.setall('* * * * *')
