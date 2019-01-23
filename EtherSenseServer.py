@@ -33,7 +33,7 @@ def openBagPipeline(filename):
     pipeline = rs.pipeline()
     pipeline_profile = pipeline.start(cfg)
     sensor = pipeline_profile.get_device().first_depth_sensor()
-    sensor.set_option(rs.option.emitter_enabled, 0)
+    #sensor.set_option(rs.option.emitter_enabled, 0)
     return pipeline
 
 class DevNullHandler(asyncore.dispatcher_with_send):
