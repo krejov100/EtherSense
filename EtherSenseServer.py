@@ -105,7 +105,7 @@ class EtherSenseServer(asyncore.dispatcher):
         return True
 
     def update_frame(self):
-        depth, timestamp = getDepthAndTimestamp(self.pipeline)
+        depth, timestamp = getDepthAndTimestamp(self.pipeline, self.decimate_filter)
         if depth is not None:
             data = pickle.dumps(depth)
             length = struct.pack('<I', len(data))
