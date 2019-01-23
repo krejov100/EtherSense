@@ -15,25 +15,23 @@ mc_ip_address = '224.0.0.1'
 port = 1024
 chunk_size = 4096
 
-def getDepthAndTimestamp(pipeline, depth_filter):
+def getDepthAndTimestamp(pipeline):
     frames = rs.composite_frame(rs.frame())
     frames = pipeline.poll_for_frames()
     if frames.size() > 0:
         depth = frames.get_depth_frame()
-        depth = depth_filter.process(depth)
-        depthData = depth.as_frame().get_data()        
+        depthData = depth.as_frame().get_data()
         depthMat = np.asanyarray(depthData)
         return depthMat, frames.get_timestamp()
     else:
         return None, None
 def openBagPipeline(filename):
     cfg = rs.config()
-    cfg.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     #cfg.enable_device_from_file(filename)
     pipeline = rs.pipeline()
     pipeline_profile = pipeline.start(cfg)
     sensor = pipeline_profile.get_device().first_depth_sensor()
-    #sensor.set_option(rs.option.emitter_enabled, 0)
+    sensor.set_option(rs.option.emitter_enabled, 0)
     return pipeline
 
 class DevNullHandler(asyncore.dispatcher_with_send):
@@ -90,8 +88,6 @@ class EtherSenseServer(asyncore.dispatcher):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         print('sending acknowledgement to', address)
         
-        self.decimate_filter = rs.decimation_filter()
-        self.decimate_filter.set_option(rs.option.filter_magnitude, 4)
         self.ready = True
         self.frameID = 0
         self.frame_data = ''
@@ -105,9 +101,10 @@ class EtherSenseServer(asyncore.dispatcher):
         return True
 
     def update_frame(self):
-        depth, timestamp = getDepthAndTimestamp(self.pipeline, self.decimate_filter)
+        depth, timestamp = getDepthAndTimestamp(self.pipeline)
         if depth is not None:
-            data = pickle.dumps(depth)
+            smallDepth = cv2.resize(depth, (0,0), fx=0.25, fy=0.25, interpolation=cv2.INTER_NEAREST)
+            data = pickle.dumps(smallDepth)
             length = struct.pack('<I', len(data))
             ts = struct.pack('<d', timestamp)
             self.frame_data = ''.join([length, ts, data])
