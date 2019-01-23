@@ -15,12 +15,13 @@ mc_ip_address = '224.0.0.1'
 port = 1024
 chunk_size = 4096
 
-def getDepthAndTimestamp(pipeline):
+def getDepthAndTimestamp(pipeline, depth_filter):
     frames = rs.composite_frame(rs.frame())
     frames = pipeline.poll_for_frames()
     if frames.size() > 0:
         depth = frames.get_depth_frame()
-        depthData = depth.as_frame().get_data()
+        depth = depth_filter.process(depth)
+        depthData = depth.as_frame().get_data()        
         depthMat = np.asanyarray(depthData)
         return depthMat, frames.get_timestamp()
     else:
@@ -89,6 +90,8 @@ class EtherSenseServer(asyncore.dispatcher):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         print('sending acknowledgement to', address)
         
+        self.decimate_filter = rs.decimation_filter()
+        self.decimate_filter.set_option(rs.option.filter_magnitude, 4)
         self.ready = True
         self.frameID = 0
         self.frame_data = ''
@@ -104,8 +107,7 @@ class EtherSenseServer(asyncore.dispatcher):
     def update_frame(self):
         depth, timestamp = getDepthAndTimestamp(self.pipeline)
         if depth is not None:
-            smallDepth = cv2.resize(depth, (0,0), fx=0.25, fy=0.25, interpolation=cv2.INTER_NEAREST)
-            data = pickle.dumps(smallDepth)
+            data = pickle.dumps(depth)
             length = struct.pack('<I', len(data))
             ts = struct.pack('<d', timestamp)
             self.frame_data = ''.join([length, ts, data])
