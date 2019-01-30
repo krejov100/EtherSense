@@ -40,7 +40,7 @@ class ImageClient(asyncore.dispatcher):
             self.frame_length = struct.unpack('<I', self.recv(4))[0]
             self.timestamp = struct.unpack('<d', self.recv(8))
             self.remainingBytes = self.frame_length
-        
+                
         data = self.recv(self.remainingBytes)
         self.buffer += data
         self.remainingBytes -= len(data)
@@ -94,13 +94,6 @@ def lasercallback(event, x, y, flags, param):
         print('click')
         param.toggle_laser()
         
-class EchoHandler(asyncore.dispatcher):
-
-    def handle_read(self):
-        data = self.recv(8192)
-        if data:
-          print(data)
-
 class EtherSenseClient(asyncore.dispatcher):
     def __init__(self):
         asyncore.dispatcher.__init__(self)
@@ -109,36 +102,28 @@ class EtherSenseClient(asyncore.dispatcher):
         self.socket.settimeout(5)
         
         self.bind(self.server_address) 	
-        self.listen(5)
+        self.listen(10)
 
     def writable(self): 
         return False # don't want write notifies
 
     def readable(self):
         return True
-
-    def handle_read(self):
-        print(self.recv(1024))
-
+        
     def handle_connect(self):
         print("connection recvied")
 
     def handle_accept(self):
         pair = self.accept()
+        #print(self.recv(10))
         if pair is not None:
             sock, addr = pair
             print ('Incoming connection from %s' % repr(addr))
             handler = ImageClient(sock, addr)
 
-
-
-
-
-
 def multi_cast_message(ip_address, port, message):
     multicast_group = (ip_address, port)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.settimeout(0.5)
     connections = {}
     try:
         # Send data to the multicast group
@@ -146,29 +131,12 @@ def multi_cast_message(ip_address, port, message):
         sent = sock.sendto(message.encode(), multicast_group)
    
         client = EtherSenseClient()
-        asyncore.loop(timeout=5)
+        asyncore.loop()
 
-        return  #  finish
         # Look for responses from all recipients
-        while True:
-            try:
-                data, server = sock.recvfrom(65507)
-                ts, imdata = data[:struct.calcsize('d')], data[struct.calcsize('d'):]
-                timestamp = struct.unpack('d', ts)
-                imdata = pickle.loads(imdata)
-                bigDepth = cv2.resize(imdata, (0,0), fx=2, fy=2, interpolation=cv2.INTER_NEAREST) 
-                cv2.putText(bigDepth, str(timestamp), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (65536), 2, cv2.LINE_AA)
-                windowName = str(server[1])
-                cv2.namedWindow(windowName)
-                if windowName not in connections:
-                    print('adding signelingClient')
-                    connections[windowName] = RealSenseSignalingClient(server[0])
-                cv2.setMouseCallback(windowName, lasercallback, param=connections[windowName])
-                cv2.imshow(windowName, bigDepth)
-                cv2.waitKey(1)
-            except socket.timeout:
-                print('timed out, no more responses')
-                break
+        
+    except socket.timeout:
+        print('timed out, no more responses')
     finally:
         print(sys.stderr, 'closing socket')
         sock.close()
