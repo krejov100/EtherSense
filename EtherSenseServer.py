@@ -14,24 +14,29 @@ print('Argument List:', str(sys.argv))
 mc_ip_address = '224.0.0.1'
 port = 1024
 chunk_size = 4096
+#rs.log_to_console(rs.log_severity.debug)
 
-def getDepthAndTimestamp(pipeline):
-    frames = rs.composite_frame(rs.frame())
-    frames = pipeline.poll_for_frames()
-    if frames.size() > 0:
-        depth = frames.get_depth_frame()
-        depthData = depth.as_frame().get_data()
+def getDepthAndTimestamp(pipeline, depth_filter):
+    frames = pipeline.wait_for_frames()
+    frames.keep()
+    depth = frames.get_depth_frame()
+    if depth:
+	depth2 = depth_filter.process(depth)
+	depth2.keep()
+        depthData = depth2.as_frame().get_data()        
         depthMat = np.asanyarray(depthData)
-        return depthMat, frames.get_timestamp()
+	ts = frames.get_timestamp()
+        return depthMat, ts
     else:
         return None, None
 def openBagPipeline(filename):
     cfg = rs.config()
+    cfg.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     #cfg.enable_device_from_file(filename)
     pipeline = rs.pipeline()
     pipeline_profile = pipeline.start(cfg)
     sensor = pipeline_profile.get_device().first_depth_sensor()
-    sensor.set_option(rs.option.emitter_enabled, 0)
+    #sensor.set_option(rs.option.emitter_enabled, 0)
     return pipeline
 
 class DevNullHandler(asyncore.dispatcher_with_send):
@@ -88,6 +93,8 @@ class EtherSenseServer(asyncore.dispatcher):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         print('sending acknowledgement to', address)
         
+        self.decimate_filter = rs.decimation_filter()
+        self.decimate_filter.set_option(rs.option.filter_magnitude, 4)
         self.ready = True
         self.frameID = 0
         self.frame_data = ''
@@ -95,16 +102,15 @@ class EtherSenseServer(asyncore.dispatcher):
         self.packet_id = 0        
 
     def handle_connect(self):
-        print("connection recvied")
+        print("connection received")
 
     def writable(self):
         return True
 
     def update_frame(self):
-        depth, timestamp = getDepthAndTimestamp(self.pipeline)
+	depth, timestamp = getDepthAndTimestamp(self.pipeline, self.decimate_filter)
         if depth is not None:
-            smallDepth = cv2.resize(depth, (0,0), fx=0.25, fy=0.25, interpolation=cv2.INTER_NEAREST)
-            data = pickle.dumps(smallDepth)
+            data = pickle.dumps(depth)
             length = struct.pack('<I', len(data))
             ts = struct.pack('<d', timestamp)
             self.frame_data = ''.join([length, ts, data])
@@ -113,12 +119,11 @@ class EtherSenseServer(asyncore.dispatcher):
         if not hasattr(self, 'frame_data'):
             self.update_frame()
         if len(self.frame_data) == 0:
-            self.update_frame()
+	    self.update_frame()
         else:
             remaining_size = self.send(self.frame_data)
             self.frame_data = self.frame_data[remaining_size:]
-            self.frameID += 1
-
+	
 
     def handle_close(self):
         self.close()
@@ -156,3 +161,4 @@ def main(argv):
    
 if __name__ == '__main__':
     main(sys.argv[1:])
+
