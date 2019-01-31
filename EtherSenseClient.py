@@ -28,26 +28,29 @@ class ImageClient(asyncore.dispatcher):
         self.port = source[1]
         self.buffer = bytearray()
         self.windowName = self.port
+        # open cv window which is unique to the port 
         cv2.namedWindow("window"+str(self.windowName))
         self.remainingBytes = 0
         self.frame_id = 0
-        #print('adding signelingClient')
-        #signalServer = RealSenseSignalingClient(self.address)
-        #cv2.setMouseCallback(self.windowName, lasercallback, param=signalServer)
-
+       
     def handle_read(self):
         if self.remainingBytes == 0:
+            # get the expected frame size
             self.frame_length = struct.unpack('<I', self.recv(4))[0]
+            # get the timestamp of the current frame
             self.timestamp = struct.unpack('<d', self.recv(8))
             self.remainingBytes = self.frame_length
-                
+        
+        # request the frame data until the frame is completely in buffer
         data = self.recv(self.remainingBytes)
         self.buffer += data
         self.remainingBytes -= len(data)
+        # once the frame is fully recived, process/display it
         if len(self.buffer) == self.frame_length:
             self.handle_frame()
 
     def handle_frame(self):
+        # convert the frame from string to numerical data
         imdata = pickle.loads(self.buffer)
         bigDepth = cv2.resize(imdata, (0,0), fx=2, fy=2, interpolation=cv2.INTER_NEAREST) 
         cv2.putText(bigDepth, str(self.timestamp), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (65536), 2, cv2.LINE_AA)
@@ -58,46 +61,12 @@ class ImageClient(asyncore.dispatcher):
     def readable(self):
         return True
 
-class RealSenseSignalingClient(asyncore.dispatcher):
-    def __init__(self,address):
-        asyncore.dispatcher.__init__(self)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connect(('10.0.2.4',9006))
-        print('connected')
-        self.laserOn = True
-        self.signalUpdate = False
-
-    def toggle_laser(self):
-        print('Toggling Laser')
-        self.laserOn = not self.laserOn    
-        self.signalUpdate = True
-
-    def handle_connect(self):
-        pass
     
-    def handle_close(self):
-        self.close()
-
-    def writable(self):
-        #if not self.connected:
-        #    return True
-        return self.signalUpdate
-
-    def handle_write(self):
-        print('Sending Toggle')
-        self.send(struct.pack('?', self.laserOn))
-        self.signalUpdate = False
-
-       
-def lasercallback(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONUP:
-        print('click')
-        param.toggle_laser()
-        
 class EtherSenseClient(asyncore.dispatcher):
     def __init__(self):
         asyncore.dispatcher.__init__(self)
         self.server_address = ('', 1024)
+        # create a socket for TCP connection between the client and server
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.settimeout(5)
         
@@ -119,9 +88,11 @@ class EtherSenseClient(asyncore.dispatcher):
         if pair is not None:
             sock, addr = pair
             print ('Incoming connection from %s' % repr(addr))
+            # when a connection is attempted, delegate image receival to the ImageClient 
             handler = ImageClient(sock, addr)
 
 def multi_cast_message(ip_address, port, message):
+    # send the multicast message
     multicast_group = (ip_address, port)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     connections = {}
@@ -130,6 +101,7 @@ def multi_cast_message(ip_address, port, message):
         print('sending "%s"' % message + str(multicast_group))
         sent = sock.sendto(message.encode(), multicast_group)
    
+        # defer waiting for a response using Asyncore
         client = EtherSenseClient()
         asyncore.loop()
 
