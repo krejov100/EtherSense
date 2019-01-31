@@ -18,25 +18,26 @@ chunk_size = 4096
 
 def getDepthAndTimestamp(pipeline, depth_filter):
     frames = pipeline.wait_for_frames()
+    # take owner ship of the frame for further processing
     frames.keep()
     depth = frames.get_depth_frame()
     if depth:
 	depth2 = depth_filter.process(depth)
+	# take owner ship of the frame for further processing
 	depth2.keep()
+	# represent the frame as a numpy array
         depthData = depth2.as_frame().get_data()        
-        depthMat = np.asanyarray(depthData)
+	depthMat = np.asanyarray(depthData)
 	ts = frames.get_timestamp()
         return depthMat, ts
     else:
         return None, None
-def openBagPipeline(filename):
+def openPipeline():
     cfg = rs.config()
     cfg.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-    #cfg.enable_device_from_file(filename)
     pipeline = rs.pipeline()
     pipeline_profile = pipeline.start(cfg)
     sensor = pipeline_profile.get_device().first_depth_sensor()
-    #sensor.set_option(rs.option.emitter_enabled, 0)
     return pipeline
 
 class DevNullHandler(asyncore.dispatcher_with_send):
@@ -46,57 +47,23 @@ class DevNullHandler(asyncore.dispatcher_with_send):
 
     def handle_close(self):
         self.close()
-
-class RealSenseSignalingServer(asyncore.dispatcher):
-    def __init__(self, address):
-        #self.pipeline = pipeline
-        asyncore.dispatcher.__init__(self)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.set_reuse_addr()
-        self.bind(('0.0.0.0', 9006))
-        print(self.socket.getsockname()[1])
-        self.listen(10)
-        
-    
-    def handle_connect(self):
-        print('connection')
-
-    def handle_close(self):
-        self.close()
-
-    def handle_accept(self):
-        pair = self.accept()
-        if pair is not None:
-            sock, addr = pair
-            #print "Incoming connection from %s" % repr(addr)
-            self.handler = DevNullHandler(sock)
-
-        #pair = self.accept()
-        #if pair is not None:
-        #    sock, addr = pair
-        #    print('Incoming Signaling from %s' % repr(addr))
-        
-    def handle_read(self):
-        print("handle_read")    
-        print(self.recv(8192))
-
-            
+           
+		
 class EtherSenseServer(asyncore.dispatcher):
     def __init__(self, address):
         asyncore.dispatcher.__init__(self)
         print("Launching Realsense Camera Server")
-        try:
-            self.pipeline = openBagPipeline("/home/node1/Desktop/20181119_131946.bag")
+	try:
+            self.pipeline = openPipeline()
         except:
             print("Unexpected error: ", sys.exc_info()[1])
             sys.exit(1)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         print('sending acknowledgement to', address)
         
+	# reduce the resolution of the depth image using post processing
         self.decimate_filter = rs.decimation_filter()
         self.decimate_filter.set_option(rs.option.filter_magnitude, 4)
-        self.ready = True
-        self.frameID = 0
         self.frame_data = ''
         self.connect((address[0], 1024))
         self.packet_id = 0        
@@ -110,17 +77,24 @@ class EtherSenseServer(asyncore.dispatcher):
     def update_frame(self):
 	depth, timestamp = getDepthAndTimestamp(self.pipeline, self.decimate_filter)
         if depth is not None:
+	    # convert the depth image to a string for broadcast
             data = pickle.dumps(depth)
+	    # capture the lenght of the data portion of the message	
             length = struct.pack('<I', len(data))
+	    # include the current timestamp for the frame
             ts = struct.pack('<d', timestamp)
+	    # for the message for transmission
             self.frame_data = ''.join([length, ts, data])
 
     def handle_write(self):
+	# first time the handle_write is called
         if not hasattr(self, 'frame_data'):
             self.update_frame()
+	# the frame has been sent in it entirety so get the latest frame
         if len(self.frame_data) == 0:
 	    self.update_frame()
         else:
+	    # send the remainder of the frame_data until there is no data remaining for transmition
             remaining_size = self.send(self.frame_data)
             self.frame_data = self.frame_data[remaining_size:]
 	
@@ -140,7 +114,7 @@ class MulticastServer(asyncore.dispatcher):
     def handle_read(self):
         data, addr = self.socket.recvfrom(42)
         print('Recived Multicast message %s bytes from %s' % (data, addr))
-        #RealSenseSignalingServer(addr)
+	# Once the server recives the multicast signal, open the frame server
         EtherSenseServer(addr)
         print(sys.stderr, data)
 
@@ -156,7 +130,9 @@ class MulticastServer(asyncore.dispatcher):
 
 
 def main(argv):
+    # initalise the multicast receiver 
     server = MulticastServer()
+    # hand over excicution flow to asyncore
     asyncore.loop()
    
 if __name__ == '__main__':
