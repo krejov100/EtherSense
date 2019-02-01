@@ -26,7 +26,7 @@ Frames are collected from the camera using librealsense pipeline. It is then res
 
 ## Client Window
 Below shows the result of having connected to two cameras over the local network: 
-![Example Image](https://github.com/krejov100/EtherSense/blob/master/MultiCameraEthernet.jpg)
+![Example Image](https://github.com/krejov100/EtherSense/blob/master/MultiCameraEthernet.png)
 The window titles indicate the port which the frames are being received over. 
 
 ## Error Logging
