@@ -67,6 +67,13 @@ class EtherSenseServer(asyncore.dispatcher):
         self.frame_data = ''
         self.connect((address[0], 1024))
         self.packet_id = 0        
+	self.buffered_frames = []
+	self.timestamps = []
+	self.frameID = 0
+	for(int i = 0; i < 1000; i++):
+		depth, timestamp = getDepthAndTimestamp(self.pipeline, self.decimate_filter)
+		self.buffered_frame.append(depth)
+		self.timestamps.append(timestamp)
 
     def handle_connect(self):
         print("connection received")
@@ -75,7 +82,9 @@ class EtherSenseServer(asyncore.dispatcher):
         return True
 
     def update_frame(self):
-	depth, timestamp = getDepthAndTimestamp(self.pipeline, self.decimate_filter)
+	depth = self.buffered_frames[self.frameID]
+	timestamp = self.timestamps[self.frameID]	
+	self.frameID += 1  
         if depth is not None:
 	    # convert the depth image to a string for broadcast
             data = pickle.dumps(depth)
