@@ -71,7 +71,7 @@ I first of all suggest installing and configuring openssh-server on each of the 
 
 Check that the UpBoards are avalible on the local network using "nmap -sP 192.168.2.*"
 
-Check that the check that the server is running on the UpBoard using "ps -eaf | grep "python EtherSenseServer.py"
+Check that the server is running on the UpBoard using "ps -eaf | grep "python EtherSenseServer.py"
 
 Finally check the log file at /tmp/error.log
 
