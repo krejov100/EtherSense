@@ -22,11 +22,11 @@ def getDepthAndTimestamp(pipeline, depth_filter):
     frames.keep()
     depth = frames.get_depth_frame()
     if depth:
-	depth2 = depth_filter.process(depth)
+	#depth2 = depth_filter.process(depth)
 	# take owner ship of the frame for further processing
-	depth2.keep()
+	depth.keep()
 	# represent the frame as a numpy array
-        depthData = depth2.as_frame().get_data()        
+        depthData = depth.as_frame().get_data()        
 	depthMat = np.asanyarray(depthData)
 	ts = frames.get_timestamp()
         return depthMat, ts
@@ -34,7 +34,7 @@ def getDepthAndTimestamp(pipeline, depth_filter):
         return None, None
 def openPipeline():
     cfg = rs.config()
-    cfg.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    #cfg.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     pipeline = rs.pipeline()
     pipeline_profile = pipeline.start(cfg)
     sensor = pipeline_profile.get_device().first_depth_sensor()
