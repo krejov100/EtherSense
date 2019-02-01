@@ -65,7 +65,6 @@ class EtherSenseServer(asyncore.dispatcher):
         self.decimate_filter = rs.decimation_filter()
         self.decimate_filter.set_option(rs.option.filter_magnitude, 2)
         self.frame_data = ''
-        self.connect((address[0], 1024))
         self.packet_id = 0        
 	self.buffered_frames = []
 	self.timestamps = []
@@ -74,6 +73,7 @@ class EtherSenseServer(asyncore.dispatcher):
 		depth, timestamp = getDepthAndTimestamp(self.pipeline, self.decimate_filter)
 		self.buffered_frame.append(depth)
 		self.timestamps.append(timestamp)
+        self.connect((address[0], 1024))
 
     def handle_connect(self):
         print("connection received")
