@@ -24,10 +24,16 @@ Mulicast broadcast is used to establish connections to servers that are present 
 Once a server receives a request for connection from a client, Asyncore is used to establish a TCP connection for each server. 
 Frames are collected from the camera using librealsense pipeline. It is then resized and send in smaller chucks as to conform with TCP.
 
-## Client Window
-Below shows the result of having connected to two cameras over the local network: 
+### UpBoard PoE 
+Below shows use of a PoE switch and PoE breakout devices(avalible from online retailers) powering each dedicated UpBoard: 
+This configuration should allow for a number of RealSense cameras to be connected over distances greater then 30m 
+![Example Image](https://github.com/krejov100/EtherSense/blob/master/UpBoardSwitch.JPG)
+The 5 RealSense cameras are connected to each UpBoard using the provided USB3 cables.
+
+### Client Window
+Below shows the result of having connected to five cameras over the local network: 
 ![Example Image](https://github.com/krejov100/EtherSense/blob/master/MultiCameraEthernet.png)
-The window titles indicate the port which the frames are being received over. 
+The window titles indicate the port which the frames are being received over.
 
 ## Error Logging
 Errors are piped to a log file stored in /tmp/error.log as part of the command that is setup in /etc/crontab
