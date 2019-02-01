@@ -44,7 +44,7 @@ Currently there is a regression in numpy that is causing a memory leak on device
 See https://github.com/numpy/numpy/issues/12793 for more details
 
 ### Power Considerations
-The upboards require a 5v 4Amp power supply, using PoE breakout adaptors I have found stability issues, for example the device kernal can crash when the HDMI port is connected, and so I recommend running the UpBoard as a headless server when using PoE. 
+The UpBoards require a 5v 4Amp power supply. When using PoE breakout adaptors I have found some stability issues, for example the device kernal can crash when the HDMI port is connected. As such I recommend running the UpBoard as a headless server when using PoE. 
 
 ### Network bandwidth
 It is currenlty very easy to saturate the bandwidth of the Ethernet connection I have tested 5 servers connected to the same client without issue beyond limited framerate:
@@ -67,9 +67,9 @@ Local recording of the depth data into a buffer, with asynchronous frame transfe
 
 ## TroubleShooting Tips
 
-I first of all suggest installing and configuring openssh-server on each of the Upboards allowing remote connection from the client machine.
+I first of all suggest installing and configuring openssh-server on each of the UpBoards allowing remote connection from the client machine.
 
-Check that the Upboards are avalible on the local network using "nmap -sP 192.168.2.*"
+Check that the UpBoards are avalible on the local network using "nmap -sP 192.168.2.*"
 
 Check that the check that the server is running on the UpBoard using "ps -eaf | grep "python EtherSenseServer.py"
 
