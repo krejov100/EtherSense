@@ -58,3 +58,15 @@ Reducing the Resoultion further.
 The addition of compression, either framewise or better still temporal. 
 
 Local recording of the depth data into a buffer, with asynchronous frame transfer. 
+
+## TroubleShooting Tips
+
+I first of all suggest installing and configuring openssh-server on each of the Upboards allowing remote connection from the client machine.
+
+Check that the Upboards are avalible on the local network using "nmap -sP 192.168.2.*"
+
+Check that the check that the server is running on the UpBoard using "ps -eaf | grep "python EtherSenseServer.py"
+
+Finally check the log file at /tmp/error.log
+
+
