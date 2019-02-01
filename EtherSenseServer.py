@@ -22,11 +22,11 @@ def getDepthAndTimestamp(pipeline, depth_filter):
     frames.keep()
     depth = frames.get_depth_frame()
     if depth:
-	#depth2 = depth_filter.process(depth)
+	depth2 = depth_filter.process(depth)
 	# take owner ship of the frame for further processing
-	depth.keep()
+	depth2.keep()
 	# represent the frame as a numpy array
-        depthData = depth.as_frame().get_data()        
+        depthData = depth2.as_frame().get_data()        
 	depthMat = np.asanyarray(depthData)
 	ts = frames.get_timestamp()
         return depthMat, ts
@@ -63,7 +63,7 @@ class EtherSenseServer(asyncore.dispatcher):
         
 	# reduce the resolution of the depth image using post processing
         self.decimate_filter = rs.decimation_filter()
-        self.decimate_filter.set_option(rs.option.filter_magnitude, 4)
+        self.decimate_filter.set_option(rs.option.filter_magnitude, 2)
         self.frame_data = ''
         self.connect((address[0], 1024))
         self.packet_id = 0        
