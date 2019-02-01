@@ -71,7 +71,7 @@ class EtherSenseServer(asyncore.dispatcher):
 	self.frameID = 0
 	for i in range(900): # 30 secounds at 30fps
 		depth, timestamp = getDepthAndTimestamp(self.pipeline, self.decimate_filter)
-		self.buffered_frame.append(depth)
+		self.buffered_frames.append(depth)
 		self.timestamps.append(timestamp)
         self.connect((address[0], 1024))
 
