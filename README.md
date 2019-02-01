@@ -41,11 +41,11 @@ See https://github.com/numpy/numpy/issues/12793 for more details
 The upboards require a 5v 4Amp power supply, using PoE breakout adaptors I have found stability issues, for example the device kernal can crash when the HDMI port is connected, and so I recommend running the UpBoard as a headless server when using PoE. 
 
 ### Network bandwidth
-It is currenlty very easy to saturate the bandwidth of the Ethernet connection I have tested 2 servers connected to the same clinent without issue, but find that cameras can dropout when 3 are used at the current transmition settings of:
+It is currenlty very easy to saturate the bandwidth of the Ethernet connection I have tested 5 servers connected to the same client without issue beyond limited framerate:
 
 cfg.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
 
-self.decimate_filter.set_option(rs.option.filter_magnitude, 4)
+self.decimate_filter.set_option(rs.option.filter_magnitude, 2)
 
 There are a number of stratagies that can be used to increase this bandwidth but are left to the user for brevity and the specific tradeoff for your application, these include:
 
