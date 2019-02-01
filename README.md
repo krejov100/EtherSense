@@ -69,4 +69,5 @@ Check that the check that the server is running on the UpBoard using "ps -eaf | 
 
 Finally check the log file at /tmp/error.log
 
+There might still be some conditions where the Server is running but not in a state to transmit, help in narrowing theses case would be much appreciated. 
 
