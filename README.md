@@ -39,32 +39,29 @@ The window titles indicate the port which the frames are being received over.
 Errors are piped to a log file stored in /tmp/error.log as part of the command that is setup in /etc/crontab
 
 ## NOTES
-### Memory Leak due to Pickling Numpy Arrays
-Currently there is a regression in numpy that is causing a memory leak on devices that run the Server script, to cricumvet this you can sudo pip install --upgrade numpy==1.15.4 to use an early version
-See https://github.com/numpy/numpy/issues/12793 for more details
 
 ### Power Considerations
-The UpBoards require a 5v 4Amp power supply. When using PoE breakout adaptors I have found some stability issues, for example the device kernal can crash when the HDMI port is connected. As such I recommend running the UpBoard as a headless server when using PoE. 
+The UpBoards require a 5v 4Amp power supply. When using PoE breakout adaptors I have found some stability issues, for example the device kernel can crash when the HDMI port is connected. As such I recommend running the UpBoard as a headless server when using PoE. 
 
 ### Network bandwidth
-It is currenlty very easy to saturate the bandwidth of the Ethernet connection I have tested 5 servers connected to the same client without issue beyond limited framerate:
+It is currently very easy to saturate the bandwidth of the Ethernet connection I have tested 5 servers connected to the same client without issue beyond limited framerate:
 
 cfg.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
 
 self.decimate_filter.set_option(rs.option.filter_magnitude, 2)
 
-There are a number of stratagies that can be used to increase this bandwidth but are left to the user for brevity and the specific tradeoff for your application, these include:
+There are a number of strategies that can be used to increase this bandwidth but are left to the user for brevity and the specific tradeoff for your application, these include:
 
-Transmitting frames using UDP and allowing for framedrop, this requires implimentation of packet orderering.
+Transmitting frames using UDP and allowing for frame drop, this requires implementation of packet ordering.
 
 Reducing the depth channel to 8bit.
 
-Reducing the Resoultion further. 
+Reducing the resolution further.
 
-The addition of compression, either framewise or better still temporal. 
+The addition of compression, either frame wise or better still temporal.
 
-Local recording of the depth data into a buffer, with asynchronous frame transfer. 
-
+Local recording of the depth data into a buffer, with asynchronous frame transfer.
+ 
 ## TroubleShooting Tips
 
 I first of all suggest installing and configuring openssh-server on each of the UpBoards allowing remote connection from the client machine.
