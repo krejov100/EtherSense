@@ -5,17 +5,21 @@ Ethernet client and server for RealSense using python's Asyncore.
 Installation and Setup of Server:
 These steps assume a fresh install of Ubuntu 18.04 on an UpBoard but has also been tested on an Intel NUC.
 
-$sudo apt-get update; sudo apt-get upgrade; 
+```
+sudo apt-get update; sudo apt-get upgrade; 
 
-$sudo apt-get install python
+sudo apt-get install python
 
-$sudo apt-get install python-pip  
+sudo apt-get install python-pip  
 
-$sudo apt-get install git 
+sudo apt-get install git
+```
 
 Clone the repo then run:
 
-$sudo python setup.py
+```
+sudo python setup.py
+```
 
 This will first install the pip dependencies, followed by the creation of cronjobs in the /etc/crontab file that maintains an instance of the Server running whenever the device is powered. 
 
